@@ -1,0 +1,75 @@
+// Prisma schema for the Internship Applicant Management API
+// Database: Neon (Serverless PostgreSQL) - https://neon.tech
+
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider  = "postgresql"
+  url       = env("DATABASE_URL")
+  // Neon: direct (non-pooled) connection used exclusively for running
+  // migrations. Falls back to DATABASE_URL if not provided.
+  directUrl = env("DIRECT_URL")
+}
+
+/// Administrator account. Only admins can authenticate and manage applicants.
+model Admin {
+  id        String   @id @default(uuid())
+  email     String   @unique
+  password  String
+  fullName  String   @map("full_name")
+  createdAt DateTime @default(now()) @map("created_at")
+  updatedAt DateTime @updatedAt @map("updated_at")
+
+  @@map("admins")
+}
+
+/// Status of an applicant's internship application.
+enum ApplicantStatus {
+  Pending
+  Shortlisted
+  Accepted
+  Rejected
+}
+
+/// Internship track the applicant is applying for.
+/// NOTE: Prisma enum identifiers cannot contain spaces or slashes, so the
+/// database stores these SCREAMING_SNAKE_CASE identifiers. The application
+/// layer (see src/applicants/enums/internship-track.enum.ts) maps them to
+/// the human-readable display strings ("Frontend Development", "UI/UX
+/// Design", etc.) used in the public API/Swagger contract.
+enum InternshipTrack {
+  FRONTEND_DEVELOPMENT
+  BACKEND_DEVELOPMENT
+  MOBILE_DEVELOPMENT
+  UI_UX_DESIGN
+  DATA_ANALYTICS
+}
+
+model Applicant {
+  id              String          @id @default(uuid())
+  fullName        String          @map("full_name")
+  email           String          @unique
+  phoneNumber     String          @map("phone_number")
+  university      String
+  graduationYear  Int             @map("graduation_year")
+  internshipTrack InternshipTrack @map("internship_track")
+  status          ApplicantStatus @default(Pending)
+
+  resumeUrl    String? @map("resume_url")
+  portfolioUrl String? @map("portfolio_url")
+  githubUrl    String? @map("github_url")
+  linkedInUrl  String? @map("linked_in_url")
+
+  internalNotes String? @map("internal_notes")
+
+  createdAt DateTime  @default(now()) @map("created_at")
+  updatedAt DateTime  @updatedAt @map("updated_at")
+  deletedAt DateTime? @map("deleted_at")
+
+  @@index([status])
+  @@index([internshipTrack])
+  @@index([deletedAt])
+  @@map("applicants")
+}
